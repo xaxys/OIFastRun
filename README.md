@@ -4,9 +4,13 @@ Fast Compile and Run a CPP Program. ——For OIers
 ### OIFastRun v1.3.8 2019.8.14
 
 > Author: xaxy
+>
 > Description: Fast Compile and Run a CPP Program.
+>
 > Usage: `oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
+>
 > Usage: `oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
+>
 > (g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")
 
 Put binary into `PATH` and Enjoy it XD
