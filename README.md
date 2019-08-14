@@ -1,13 +1,15 @@
 # OIFastRun
- Fast Compile and Run a CPP Program. ——For OIers
+Fast Compile and Run a CPP Program. ——For OIers
 
 ### OIFastRun v1.3.8 2019.8.14
-`Author: xaxy`
-`Description: Fast Compile and Run a CPP Program.`
-`Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
-`Usage: oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
-` (g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")`
 
+> Author: xaxy
+> Description: Fast Compile and Run a CPP Program.
+> Usage: `oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
+> Usage: `oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]`
+> (g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")
+
+Put binary into `PATH` and Enjoy it XD
 
 
 ##### Example:
@@ -23,8 +25,8 @@ D:\C++\hello\P3952\P3952>oi r -i complexity.cpp
 
 找到 3 份输入数据：
 > [0] D:\C++\hello\P3952\P3952\complexity1.in
-> [2] D:\C++\hello\P3952\P3952\complexity2.in
-> [3] D:\C++\hello\P3952\P3952\complexity3.in
+> [1] D:\C++\hello\P3952\P3952\complexity2.in
+> [2] D:\C++\hello\P3952\P3952\complexity3.in
 是否全部使用？[Y/N] 默认Y 或 输入需要使用的数据编号（多个数据使用','隔开）:Y
 
 >>>运行程序 D:\C++\hello\P3952\P3952\complexity.exe 输入重定向至 complexity1.in

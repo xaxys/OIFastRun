@@ -28,18 +28,14 @@ var (
 	COMPAREANS = -1
 	//EXT 可执行文件后缀名
 	EXT string
-	//PREFIX 可执行文件运行前导
-	PREFIX string
 )
 
 func init() {
 	switch runtime.GOOS {
 	case "windows":
 		EXT = ".exe"
-		PREFIX = ""
 	case "linux":
 		EXT = ""
-		PREFIX = "./"
 	}
 	PATH, _ = filepath.Abs("")
 }
@@ -79,7 +75,7 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.3.8 2019.8.14
+		`[OIFastRun] OIFastRun v1.3.12 2019.8.14
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
             Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]
@@ -94,14 +90,9 @@ func RunCode(list []string) {
 		fmt.Println(">>>>>>运行测试", file)
 		COMPAREANS = -1
 
-		inputFile, err := filepath.Glob(strings.Replace(file, EXT, "*.in", 1))
+		inputFile, err := filepath.Glob(filepath.Join(filepath.Dir(file), "*.in"))
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
-		}
-
-		testdata := filepath.Join(filepath.Dir(file), "testdata.in")
-		if fileExist(testdata) {
-			inputFile = append(inputFile, testdata)
 		}
 
 		tot := 0
@@ -116,9 +107,22 @@ func RunCode(list []string) {
 			}
 			fmt.Print("是否全部使用？[Y/N] 默认Y 或 输入需要使用的数据编号（多个数据使用','隔开）:")
 			var s string
+			var testList []string
 			fmt.Scanln(&s)
 			if s == "Y" || s == "y" || s == "" {
-				for _, v := range inputFile {
+				testList = inputFile
+			} else {
+				numList := strings.Split(s, ",")
+				for _, i := range numList {
+					a := getDigit(i)
+					if a != -1 && a < len(inputFile) {
+						testList = append(testList, inputFile[a])
+					}
+				}
+
+			}
+			if len(testList) > 0 {
+				for _, v := range testList {
 					res, sta := testCode(file, v)
 					if res {
 						ac++
@@ -129,37 +133,13 @@ func RunCode(list []string) {
 				fmt.Println()
 				fmt.Println(">>>数据统计 AC率:", ac, "/", tot)
 				for i, v := range statue {
-					fmt.Println("> [", i, "]", v)
+					fmt.Printf("> [%d] %s", i, v)
+					fmt.Println()
 				}
 				continue
-			} else {
-				numList := strings.Split(s, ",")
-				for _, i := range numList {
-					a := getDigit(i)
-					if a != -1 && a < len(inputFile) {
-						v := inputFile[a]
-						res, sta := testCode(file, v)
-						if res {
-							ac++
-						}
-						statue = append(statue, sta+" | "+filepath.Base(v))
-						tot++
-					}
-				}
-				if tot > 0 {
-					fmt.Println()
-					fmt.Println(">>>数据统计 AC率:", ac, "/", tot)
-					for i, v := range statue {
-						fmt.Println("> [", i, "]", v)
-					}
-					continue
-				} else {
-					testCode(file, "")
-				}
 			}
-		} else {
-			testCode(file, "")
 		}
+		testCode(file, "")
 	}
 }
 
@@ -172,11 +152,11 @@ func fileExist(file string) bool {
 }
 
 func testCode(file string, v string) (bool, string) {
-	var ac = false
-	var statue = "UKE"
+	var ac bool
+	var statue string
 	var err error
 	var input []byte
-	cmd := exec.Command(PREFIX + file)
+	cmd := exec.Command(file)
 	fmt.Println()
 	if v == "" {
 		cmd.Stdin = os.Stdin
@@ -201,6 +181,7 @@ func testCode(file string, v string) (bool, string) {
 		fmt.Println("---RE---")
 		ac = false
 		statue = "RE"
+		return ac, statue
 	}
 
 	if COMPAREANS == -2 {
