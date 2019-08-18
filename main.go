@@ -75,7 +75,7 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.3.12 2019.8.14
+		`[OIFastRun] OIFastRun v1.3.14 2019.8.18
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
             Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]
@@ -130,11 +130,13 @@ func RunCode(list []string) {
 					statue = append(statue, sta+" | "+filepath.Base(v))
 					tot++
 				}
-				fmt.Println()
-				fmt.Println(">>>数据统计 AC率:", ac, "/", tot)
-				for i, v := range statue {
-					fmt.Printf("> [%d] %s", i, v)
+				if COMPAREANS != -2 {
 					fmt.Println()
+					fmt.Println(">>>数据统计 AC率:", ac, "/", tot)
+					for i, v := range statue {
+						fmt.Printf("> [%d] %s", i, v)
+						fmt.Println()
+					}
 				}
 				continue
 			}
@@ -168,14 +170,7 @@ func testCode(file string, v string) (bool, string) {
 			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
 		}
 	}
-	stdout, stderr, err := execCommand(cmd, input, true, true)
-	if len(stderr) > 0 {
-		fmt.Println("================================================")
-		for _, v := range stderr {
-			fmt.Print(v)
-		}
-		fmt.Println("================================================")
-	}
+	stdout, _, err := execCommand(cmd, input, true, true)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
 		fmt.Println("---RE---")
@@ -435,28 +430,32 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 	func() {
 		for {
 			line, err := outReader.ReadString('\n')
+			if line != "" {
+				if record {
+					outArray = append(outArray, line)
+				}
+				if output {
+					fmt.Print(line)
+				}
+			}
 			if err != nil || io.EOF == err {
 				break
-			}
-			if record {
-				outArray = append(outArray, line)
-			}
-			if output {
-				fmt.Print(line)
 			}
 		}
 	}()
 	func() {
 		for {
 			line, err := errReader.ReadString('\n')
+			if line != "" {
+				if record {
+					errArray = append(errArray, line)
+				}
+				if output {
+					fmt.Fprint(os.Stderr, line)
+				}
+			}
 			if err != nil || io.EOF == err {
 				break
-			}
-			if record {
-				errArray = append(errArray, line)
-			}
-			if output {
-				fmt.Fprintln(os.Stderr, line)
 			}
 		}
 	}()

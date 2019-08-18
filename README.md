@@ -1,7 +1,7 @@
 # OIFastRun
 Fast Compile and Run a CPP Program. ——For OIers
 
-### OIFastRun v1.3.8 2019.8.14
+### OIFastRun v1.3.14 2019.8.18
 
 > Author: xaxy
 >
