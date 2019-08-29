@@ -11,6 +11,9 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
+
+	"github.com/fatih/color"
 )
 
 var (
@@ -28,6 +31,8 @@ var (
 	COMPAREANS = -1
 	//EXT 可执行文件后缀名
 	EXT string
+	//SplitOutput 在测试程序运行结束时进行输出
+	SplitOutput bool
 )
 
 func init() {
@@ -57,6 +62,7 @@ func ParseCmd() {
 	flag.StringVar(&outPutFile, "o", "", "Rename Output File")
 	flag.StringVar(&inPutFile, "i", "", "Specify Input File")
 	flag.BoolVar(&O2, "O2", false, "Rename Output File")
+	flag.BoolVar(&SplitOutput, "s", false, "Split Output")
 
 	flag.CommandLine.Parse(os.Args[2:])
 }
@@ -75,12 +81,13 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.3.14 2019.8.18
+		`[OIFastRun] OIFastRun v1.4.6 2019.8.29
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
-            Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]
-            Usage: oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2]
-            (g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")`)
+            Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [-s]
+            Usage: oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [s]
+			(-O2 : g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")
+			(-s  : Print all output at the end of execution)`)
 }
 
 //RunCode 运行代码
@@ -92,7 +99,7 @@ func RunCode(list []string) {
 
 		inputFile, err := filepath.Glob(filepath.Join(filepath.Dir(file), "*.in"))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		}
 
 		tot := 0
@@ -167,16 +174,33 @@ func testCode(file string, v string) (bool, string) {
 		fmt.Println(">>>运行程序", file, "输入重定向至", filepath.Base(v))
 		input, err = readFileByte(v)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		}
 	}
-	stdout, _, err := execCommand(cmd, input, true, true)
+	stdout, stderr, err := execCommand(cmd, input, true, true)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
-		fmt.Println("---RE---")
+		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+		fmt.Println(color.YellowString("---RE---"))
 		ac = false
-		statue = "RE"
+		statue = color.YellowString("RE")
 		return ac, statue
+	}
+
+	if SplitOutput {
+		if len(stderr) > 0 {
+			fmt.Println(color.RedString("=====[STDERR]====="))
+			for _, v := range stderr {
+				fmt.Print(color.RedString(v))
+			}
+			fmt.Println(color.RedString("===[END STDERR]==="))
+		}
+		if len(stdout) > 0 {
+			fmt.Println("=====[STDOUT]=====")
+			for _, v := range stdout {
+				fmt.Print(v)
+			}
+			fmt.Println("===[END STDOUT]===")
+		}
 	}
 
 	if COMPAREANS == -2 {
@@ -232,14 +256,14 @@ func testCode(file string, v string) (bool, string) {
 		fmt.Println("对比答案", filepath.Base(ansFile[comp]))
 		f, tip, line := compFile(stdout, ansFile[comp])
 		if f {
-			fmt.Println("---AC---")
+			fmt.Println(color.GreenString("---Accepted---"))
 			ac = true
-			statue = "AC"
+			statue = color.GreenString("AC")
 		} else {
-			fmt.Println("---WA---")
+			fmt.Println(color.MagentaString("---Wrong Answer---"))
 			fmt.Println(tip, "at line:", line)
 			ac = false
-			statue = "WA"
+			statue = color.MagentaString("WA")
 		}
 	}
 
@@ -312,11 +336,11 @@ func SearchCode() []string {
 	if inPutFile == "" {
 		t, err := filepath.Abs("*.cpp")
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		}
 		cppFile, err = filepath.Glob(t)
 		if err != nil {
-			fmt.Println(err)
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		}
 	} else {
 		inPutFile, _ = filepath.Abs(inPutFile)
@@ -372,16 +396,16 @@ func CompileCode(cppFile []string) []string {
 
 		stdout, stderr, err := execCommand(cmd, nil, false, true)
 		if err != nil {
-			fmt.Println("失败！")
+			fmt.Println(color.RedString("失败！"))
 		} else {
-			fmt.Println("成功！")
+			fmt.Println(color.GreenString("成功！"))
 		}
 		if len(stderr) > 0 {
-			fmt.Println("================================================")
+			fmt.Println(color.RedString("================================================"))
 			for _, v := range stderr {
-				fmt.Print(v)
+				fmt.Print(color.RedString(v))
 			}
-			fmt.Println("================================================")
+			fmt.Println(color.RedString("================================================"))
 		}
 		if len(stdout) > 0 {
 			for _, v := range stdout {
@@ -389,7 +413,7 @@ func CompileCode(cppFile []string) []string {
 			}
 		}
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		} else {
 			list = append(list, fullName)
 		}
@@ -404,30 +428,32 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 	if input != nil {
 		inpipe, err := cmd.StdinPipe()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		}
 		_, err2 := inpipe.Write(input)
 		if err2 != nil {
-			fmt.Fprintln(os.Stderr, "[ERROR]", err2.Error())
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err2.Error()))
 		}
 		inpipe.Close()
 	}
 	outpipe, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "[ERROR]", err.Error())
+		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
 		return nil, nil, err
 	}
 	errpipe, err2 := cmd.StderrPipe()
 	if err2 != nil {
-		fmt.Fprintln(os.Stderr, "[ERROR]", err2.Error())
+		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err2.Error()))
 		return nil, nil, err2
 	}
 
-	cmd.Start()
-
 	outReader := bufio.NewReader(outpipe)
 	errReader := bufio.NewReader(errpipe)
-	func() {
+	cmd.Start()
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+	go func() {
 		for {
 			line, err := outReader.ReadString('\n')
 			if line != "" {
@@ -439,26 +465,29 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 				}
 			}
 			if err != nil || io.EOF == err {
+				wg.Done()
 				break
 			}
 		}
 	}()
-	func() {
+	go func() {
 		for {
 			line, err := errReader.ReadString('\n')
 			if line != "" {
 				if record {
-					errArray = append(errArray, line)
+					errArray = append(errArray, color.RedString(line))
 				}
 				if output {
-					fmt.Fprint(os.Stderr, line)
+					fmt.Fprint(os.Stderr, color.RedString(line))
 				}
 			}
 			if err != nil || io.EOF == err {
+				wg.Done()
 				break
 			}
 		}
 	}()
+	wg.Wait()
 
 	err3 := cmd.Wait()
 	return outArray, errArray, err3
