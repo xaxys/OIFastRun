@@ -81,7 +81,7 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.4.6 2019.8.29
+		`[OIFastRun] OIFastRun v1.4.7 2019.8.29
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
             Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [-s]
@@ -425,17 +425,6 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 	var outArray []string
 	var errArray []string
 
-	if input != nil {
-		inpipe, err := cmd.StdinPipe()
-		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
-		}
-		_, err2 := inpipe.Write(input)
-		if err2 != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err2.Error()))
-		}
-		inpipe.Close()
-	}
 	outpipe, err := cmd.StdoutPipe()
 	if err != nil {
 		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
@@ -447,9 +436,25 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 		return nil, nil, err2
 	}
 
+	var inpipe io.WriteCloser
+	if input != nil {
+		inpipe, err = cmd.StdinPipe()
+		if err != nil {
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+		}
+	}
+
 	outReader := bufio.NewReader(outpipe)
 	errReader := bufio.NewReader(errpipe)
 	cmd.Start()
+
+	if input != nil {
+		_, err := inpipe.Write(input)
+		if err != nil {
+			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+		}
+		inpipe.Close()
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
