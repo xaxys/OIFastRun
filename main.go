@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/fatih/color"
+	"github.com/gookit/color"
 )
 
 var (
@@ -81,13 +81,13 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.4.7 2019.8.29
+		`[OIFastRun] OIFastRun v1.4.10 2019.8.30
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
             Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [-s]
-            Usage: oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [s]
-			(-O2 : g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")
-			(-s  : Print all output at the end of execution)`)
+            Usage: oi r[un] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [-s]
+            (-O2 : g++ Option "-g" Enabled by Default, It Will be Disabled If You Enabled "-O2")
+            (-s  : Print all output at the end of execution)`)
 }
 
 //RunCode 运行代码
@@ -99,7 +99,7 @@ func RunCode(list []string) {
 
 		inputFile, err := filepath.Glob(filepath.Join(filepath.Dir(file), "*.in"))
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		}
 
 		tot := 0
@@ -131,11 +131,13 @@ func RunCode(list []string) {
 			if len(testList) > 0 {
 				for _, v := range testList {
 					res, sta := testCode(file, v)
-					if res {
+					if res == 1 {
 						ac++
 					}
+					if res != 0 {
+						tot++
+					}
 					statue = append(statue, sta+" | "+filepath.Base(v))
-					tot++
 				}
 				if COMPAREANS != -2 {
 					fmt.Println()
@@ -160,9 +162,9 @@ func fileExist(file string) bool {
 	return true
 }
 
-func testCode(file string, v string) (bool, string) {
-	var ac bool
-	var statue string
+func testCode(file string, v string) (int, string) {
+	var ac = 0
+	var statue = "UK"
 	var err error
 	var input []byte
 	cmd := exec.Command(file)
@@ -174,32 +176,33 @@ func testCode(file string, v string) (bool, string) {
 		fmt.Println(">>>运行程序", file, "输入重定向至", filepath.Base(v))
 		input, err = readFileByte(v)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		}
 	}
-	stdout, stderr, err := execCommand(cmd, input, true, true)
+
+	stdout, stderr, err := execCommand(cmd, input, !SplitOutput, true, true)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
-		fmt.Println(color.YellowString("---RE---"))
-		ac = false
-		statue = color.YellowString("RE")
+		color.Error.Println("[ERROR]", err.Error())
+		color.LightMagenta.Println("---RE---")
+		ac = -1
+		statue = color.FgLightMagenta.Render("RE")
 		return ac, statue
 	}
 
 	if SplitOutput {
-		if len(stderr) > 0 {
-			fmt.Println(color.RedString("=====[STDERR]====="))
-			for _, v := range stderr {
-				fmt.Print(color.RedString(v))
-			}
-			fmt.Println(color.RedString("===[END STDERR]==="))
-		}
 		if len(stdout) > 0 {
-			fmt.Println("=====[STDOUT]=====")
+			color.Gray.Println("=====[STDOUT]=====")
 			for _, v := range stdout {
 				fmt.Print(v)
 			}
-			fmt.Println("===[END STDOUT]===")
+			color.Gray.Println("===[END STDOUT]===")
+		}
+		if len(stderr) > 0 {
+			color.LightRed.Println("=====[STDERR]=====")
+			for _, v := range stdout {
+				color.Red.Print(v)
+			}
+			color.LightRed.Println("===[END STDERR]===")
 		}
 	}
 
@@ -256,14 +259,14 @@ func testCode(file string, v string) (bool, string) {
 		fmt.Println("对比答案", filepath.Base(ansFile[comp]))
 		f, tip, line := compFile(stdout, ansFile[comp])
 		if f {
-			fmt.Println(color.GreenString("---Accepted---"))
-			ac = true
-			statue = color.GreenString("AC")
+			color.LightGreen.Println("---Accepted---")
+			ac = 1
+			statue = color.FgLightGreen.Render("AC")
 		} else {
-			fmt.Println(color.MagentaString("---Wrong Answer---"))
+			color.LightRed.Println("---Wrong Answer---")
 			fmt.Println(tip, "at line:", line)
-			ac = false
-			statue = color.MagentaString("WA")
+			ac = -1
+			statue = color.FgLightRed.Render("WA")
 		}
 	}
 
@@ -336,11 +339,11 @@ func SearchCode() []string {
 	if inPutFile == "" {
 		t, err := filepath.Abs("*.cpp")
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		}
 		cppFile, err = filepath.Glob(t)
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		}
 	} else {
 		inPutFile, _ = filepath.Abs(inPutFile)
@@ -357,7 +360,7 @@ func SearchCode() []string {
 		return cppFile
 	}
 	if len(cppFile) > 1 && outPutFile != "" {
-		fmt.Fprintln(os.Stderr, "[WARNING] 文件夹中包含超过一个源代码文件！ '-o' 将不会生效！")
+		color.Warn.Tips("文件夹中包含超过一个源代码文件！ '-o' 将不会生效！")
 	}
 
 	fmt.Println("找到", len(cppFile), "份源代码：")
@@ -394,18 +397,18 @@ func CompileCode(cppFile []string) []string {
 			cmd = exec.Command("g++", v, "-o", fullName, "-g")
 		}
 
-		stdout, stderr, err := execCommand(cmd, nil, false, true)
+		stdout, stderr, err := execCommand(cmd, nil, false, false, true)
 		if err != nil {
-			fmt.Println(color.RedString("失败！"))
+			color.Red.Println("失败！")
 		} else {
-			fmt.Println(color.GreenString("成功！"))
+			color.Green.Println("成功！")
 		}
 		if len(stderr) > 0 {
-			fmt.Println(color.RedString("================================================"))
+			color.Red.Println("================================================")
 			for _, v := range stderr {
-				fmt.Print(color.RedString(v))
+				color.Red.Print(v)
 			}
-			fmt.Println(color.RedString("================================================"))
+			color.Red.Println("================================================")
 		}
 		if len(stdout) > 0 {
 			for _, v := range stdout {
@@ -413,7 +416,7 @@ func CompileCode(cppFile []string) []string {
 			}
 		}
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		} else {
 			list = append(list, fullName)
 		}
@@ -421,40 +424,39 @@ func CompileCode(cppFile []string) []string {
 	return list
 }
 
-func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]string, []string, error) {
+func execCommand(cmd *exec.Cmd, input []byte, printStdout bool, printStderr bool, record bool) ([]string, []string, error) {
 	var outArray []string
 	var errArray []string
 
 	outpipe, err := cmd.StdoutPipe()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+		color.Error.Println("[ERROR]", err.Error())
 		return nil, nil, err
 	}
 	errpipe, err2 := cmd.StderrPipe()
 	if err2 != nil {
-		fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err2.Error()))
+		color.Error.Println("[ERROR]", err2.Error())
 		return nil, nil, err2
 	}
 
-	var inpipe io.WriteCloser
 	if input != nil {
-		inpipe, err = cmd.StdinPipe()
+		inpipe, err := cmd.StdinPipe()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
+			color.Error.Println("[ERROR]", err.Error())
 		}
+		go func() {
+			_, err = inpipe.Write(input)
+			if err != nil {
+				color.Error.Println("[ERROR]", err.Error())
+				color.Error.Println("若出现 The pipe has been ended 可能是尚未写入所有测试数据而程序过早地结束")
+			}
+			inpipe.Close()
+		}()
 	}
 
 	outReader := bufio.NewReader(outpipe)
 	errReader := bufio.NewReader(errpipe)
 	cmd.Start()
-
-	if input != nil {
-		_, err := inpipe.Write(input)
-		if err != nil {
-			fmt.Fprintln(os.Stderr, color.RedString("[ERROR] %v", err.Error()))
-		}
-		inpipe.Close()
-	}
 
 	var wg sync.WaitGroup
 	wg.Add(2)
@@ -465,7 +467,7 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 				if record {
 					outArray = append(outArray, line)
 				}
-				if output {
+				if printStdout {
 					fmt.Print(line)
 				}
 			}
@@ -480,10 +482,10 @@ func execCommand(cmd *exec.Cmd, input []byte, output bool, record bool) ([]strin
 			line, err := errReader.ReadString('\n')
 			if line != "" {
 				if record {
-					errArray = append(errArray, color.RedString(line))
+					errArray = append(errArray, line)
 				}
-				if output {
-					fmt.Fprint(os.Stderr, color.RedString(line))
+				if printStderr {
+					fmt.Fprint(os.Stderr, line)
 				}
 			}
 			if err != nil || io.EOF == err {
