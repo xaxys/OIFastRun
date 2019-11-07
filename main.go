@@ -81,7 +81,7 @@ func main() {
 
 func printHelp() {
 	fmt.Println(
-		`[OIFastRun] OIFastRun v1.4.10 2019.8.30
+		`[OIFastRun] OIFastRun v1.4.11 2019.11.7
             Author: xaxy
             Description: Fast Compile and Run a CPP Program.
             Usage: oi b[uild] [-i INPUT_FILE] [-o OUTPUT_FILE] [-O2] [-s]
@@ -183,6 +183,7 @@ func testCode(file string, v string) (int, string) {
 	stdout, stderr, err := execCommand(cmd, input, !SplitOutput, true, true)
 	if err != nil {
 		color.Error.Println("[ERROR]", err.Error())
+		fmt.Println()
 		color.LightMagenta.Println("---RE---")
 		ac = -1
 		statue = color.FgLightMagenta.Render("RE")
@@ -190,18 +191,21 @@ func testCode(file string, v string) (int, string) {
 	}
 
 	if SplitOutput {
+		fmt.Println()
 		if len(stdout) > 0 {
 			color.Gray.Println("=====[STDOUT]=====")
 			for _, v := range stdout {
 				fmt.Print(v)
 			}
+			fmt.Println()
 			color.Gray.Println("===[END STDOUT]===")
 		}
 		if len(stderr) > 0 {
 			color.LightRed.Println("=====[STDERR]=====")
-			for _, v := range stdout {
+			for _, v := range stderr {
 				color.Red.Print(v)
 			}
+			fmt.Println()
 			color.LightRed.Println("===[END STDERR]===")
 		}
 	}
@@ -259,10 +263,12 @@ func testCode(file string, v string) (int, string) {
 		fmt.Println("对比答案", filepath.Base(ansFile[comp]))
 		f, tip, line := compFile(stdout, ansFile[comp])
 		if f {
+			fmt.Println()
 			color.LightGreen.Println("---Accepted---")
 			ac = 1
 			statue = color.FgLightGreen.Render("AC")
 		} else {
+			fmt.Println()
 			color.LightRed.Println("---Wrong Answer---")
 			fmt.Println(tip, "at line:", line)
 			ac = -1
@@ -404,11 +410,12 @@ func CompileCode(cppFile []string) []string {
 			color.Green.Println("成功！")
 		}
 		if len(stderr) > 0 {
-			color.Red.Println("================================================")
+			color.Red.Println("=====[STDERR]=====")
 			for _, v := range stderr {
 				color.Red.Print(v)
 			}
-			color.Red.Println("================================================")
+			fmt.Println()
+			color.Red.Println("===[END STDERR]===")
 		}
 		if len(stdout) > 0 {
 			for _, v := range stdout {
